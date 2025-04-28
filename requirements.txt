@@ -3,3 +3,4 @@ matplotlib
 pandas
 flask
 scikit-learn
+gunicorn
