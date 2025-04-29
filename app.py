@@ -1,38 +1,39 @@
+import os
 import pickle
-from flask import Flask, request, app, jsonify, url_for, render_template
 import numpy as np
 import pandas as pd
+from flask import Flask, request, jsonify, render_template
 
+# Initialize Flask app
 app = Flask(__name__)
 
-# Load model and scaler
+# Load trained model and scaler
 regmodel = pickle.load(open('regmodel.pkl', 'rb'))
-scalar = pickle.load(open('scaling.pkl', 'rb'))
+scaler = pickle.load(open('scaling.pkl', 'rb'))
 
+# Home route
 @app.route('/')
 def home():
     return render_template('home.html')
 
+# API endpoint for prediction (JSON input)
 @app.route('/predict_api', methods=['POST'])
 def predict_api():
     data = request.json['data']
-    print(data)
     input_data = np.array(list(data.values())).reshape(1, -1)
-    new_data = scalar.transform(input_data)
-    output = regmodel.predict(new_data)
-    print(output[0])    
-    return jsonify(output[0])
+    scaled_data = scaler.transform(input_data)
+    prediction = regmodel.predict(scaled_data)
+    return jsonify(prediction[0])
 
-@app.route('/predict',methods=['POST'])
+# Form submission prediction (from HTML form)
+@app.route('/predict', methods=['POST'])
 def predict():
-    data=[float(x)for x in request.form.values()]
-    final_input=scalar.transform(np.array(data).reshape(1,-1))
-    print(final_input)
-    output=regmodel.predict(final_input)[0]
-    return render_template("home.html",prediction_text="the house price prediction is {}".format(output))
+    data = [float(x) for x in request.form.values()]
+    final_input = scaler.transform(np.array(data).reshape(1, -1))
+    prediction = regmodel.predict(final_input)[0]
+    return render_template("home.html", prediction_text=f"The house price prediction is {prediction}")
 
+# Run the app
 if __name__ == "__main__":
-    app.run(debug=True, port=8000)
-
-
-  
+    port = int(os.environ.get("PORT", 5000))  # For Render deployment
+    app.run(debug=True, host='0.0.0.0', port=port)
